@@ -1,5 +1,5 @@
 """
-Download open Class C housing violations for the Bronx from the NYC HPD
+Download open lead paint housing violations for the Bronx from the NYC HPD
 Housing Maintenance Code Violations dataset.
 
 Filtering is done server-side via Socrata SoQL query parameters so only the
@@ -43,6 +43,9 @@ BORO_ID = 2
 # Violation class to filter on ('C' = immediately hazardous)
 VIOLATION_CLASS = "C"
 
+# Order numbers to keep (616/617 = lead paint violations per HPD docs)
+ORDER_NUMBERS = ["616", "617"]
+
 # Current statuses that the HPD data dictionary classifies as open
 OPEN_CURRENT_STATUSES = [
     "VIOLATION OPEN",
@@ -60,7 +63,6 @@ OPEN_CURRENT_STATUSES = [
     "VIOLATION REOPEN",
     "INFO NOV SENT OUT",
     "INVALID CERTIFICATION",
-    "COMPLIED IN ACCESS AREA",
     "CIV 14 MAILED",
 ]
 
@@ -76,7 +78,13 @@ page_size = 50_000
 # Note: class is a reserved word in SoQL on some versions of the API; if you
 # receive a 400 error, try replacing "class" with "violationclass".
 status_clause = ",".join([f"'{s}'" for s in OPEN_CURRENT_STATUSES])
-where = f"boroid={BORO_ID} AND class='{VIOLATION_CLASS}' AND currentstatus in ({status_clause})"
+order_clause = ",".join([f"'{o}'" for o in ORDER_NUMBERS])
+where = (
+    f"boroid={BORO_ID} "
+    f"AND class='{VIOLATION_CLASS}' "
+    f"AND currentstatus in ({status_clause}) "
+    f"AND ordernumber in ({order_clause})"
+)
 
 # URL-encode the WHERE clause so quotes and spaces survive the HTTP request
 encoded_where = quote(where)
@@ -125,7 +133,7 @@ for column in violations.columns:
 print(f"Downloaded {len(violations):,} open Bronx Class {VIOLATION_CLASS} violations.")
 
 # Resolve output path relative to this script file, not the working directory
-output_dir = Path(__file__).parent / "output"
+output_dir = Path(__file__).parent.parent / "output"
 output_dir.mkdir(exist_ok=True)
 
 # Save the raw violation rows to a Parquet file for use by the filter script

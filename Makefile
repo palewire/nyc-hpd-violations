@@ -3,6 +3,10 @@
 # Run the full pipeline from scratch
 all: output/bronx_buildings.json
 
+# Clean up all generated files
+clean:
+	rm -f output/*.parquet output/*.json
+
 # Install dependencies
 install:
 	uv sync

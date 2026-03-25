@@ -61,7 +61,7 @@ pluto = pd.concat(pages, ignore_index=True)
 print(f"Downloaded {len(pluto):,} PLUTO records.")
 
 # Resolve output path relative to this script file, not the working directory
-output_dir = Path(__file__).parent / "output"
+output_dir = Path(__file__).parent.parent / "output"
 output_dir.mkdir(exist_ok=True)
 
 # Save the raw PLUTO data to a Parquet file for use by the merge script

@@ -1,18 +1,22 @@
 # nyc-hpd-violations
 
-A Python pipeline that downloads and processes NYC Housing Maintenance Code Violations from [NYC Open Data](https://data.cityofnewyork.us/Housing-Development/Housing-Maintenance-Code-Violations/wvxf-dwi5), producing a clean JSON file with one record per building that groups violations by address, counts them, and adds geographic coordinates.
+A Python pipeline that downloads and processes NYC Housing Maintenance Code Violations from [NYC Open Data](https://data.cityofnewyork.us/Housing-Development/Housing-Maintenance-Code-Violations/wvxf-dwi5), focused on **lead paint violations** (Class C, `ordernumber` 616/617). It produces a clean JSON file with one record per building that groups violations by address, counts them, and adds geographic coordinates.
 
 Originally developed as a data source for a journalism class exercise in building interactive database explorers.
 
 ## What it produces
 
-Running the four scripts in order produces `output/bronx_buildings.json` — every building in the Bronx with at least one open Class C (immediately hazardous) HPD violation, with:
+Running the four scripts in order produces `scripts/output/bronx_buildings.json` — every Bronx building with at least one open lead paint (Class C, ordernumber 616/617) HPD violation, with:
 
 - Violation count and most recent date
 - Street address and ZIP code
 - Latitude and longitude from [MapPLUTO](https://data.cityofnewyork.us/City-Government/Primary-Land-Use-Tax-Lot-Output-PLUTO-/64uk-42ks)
-- Current status (from the most recent violation in the building)
-- A nested list of all individual violations with descriptions and dates
+- A nested list of all individual violations with descriptions, dates, and current status (sorted most recent first)
+
+Additional filters applied during download:
+
+- Violation class `C`
+- `ordernumber` in 616 or 617 (lead paint violations per HPD)
 
 Intermediate outputs are stored as compressed Parquet files to reduce disk usage and speed reloads.
 
@@ -57,16 +61,16 @@ make
 That runs all four steps in order. Or run them individually:
 
 ```bash
-# Step 1 — download open Bronx Class C violations → output/violations_raw.parquet
+# Step 1 — download open Bronx Class C violations → scripts/output/violations_raw.parquet
 uv run python scripts/01_download_violations.py
 
-# Step 2 — download PLUTO coordinates → output/pluto_raw.parquet
+# Step 2 — download PLUTO coordinates → scripts/output/pluto_raw.parquet
 uv run python scripts/02_download_pluto.py
 
-# Step 3 — group violations by building → output/bronx_c_violations.parquet
+# Step 3 — group violations by building → scripts/output/bronx_c_violations.parquet
 uv run python scripts/03_filter_violations.py
 
-# Step 4 — merge coordinates and write JSON → output/bronx_buildings.json
+# Step 4 — merge coordinates and write JSON → scripts/output/bronx_buildings.json
 uv run python scripts/04_merge_pluto.py
 ```
 

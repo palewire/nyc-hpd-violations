@@ -1,6 +1,6 @@
 """
-Read the raw violations downloaded by 01_download_violations.py, group them
-by building, and write a summary Parquet file with one row per building.
+Read the lead-paint violations downloaded by 01_download_violations.py, group
+them by building, and write a summary Parquet file with one row per building.
 
 Each building row contains the violation count, the date of the most recent
 violation, and a nested list of all violation descriptions and dates for use
@@ -15,7 +15,7 @@ from pathlib import Path
 import pandas as pd
 
 # Resolve input/output paths relative to this script file, not the working directory
-script_dir = Path(__file__).parent
+script_dir = Path(__file__).parent.parent
 output_dir = script_dir / "output"
 
 # Print a status message so the user knows the script has started
@@ -47,11 +47,11 @@ violations["address"] = (
     violations["housenumber"].str.strip() + " " + violations["streetname"].str.strip()
 ).str.strip()
 
-# Convert the violation issue date to a proper datetime type so max() returns the latest date correctly
-violations["novissueddate"] = pd.to_datetime(violations["novissueddate"])
+# Convert the inspection date to a proper datetime type so max() returns the latest date correctly
+violations["inspectiondate"] = pd.to_datetime(violations["inspectiondate"])
 
-# Sort by issue date so groupby "last" pulls the latest currentstatus
-violations = violations.sort_values("novissueddate")
+# Sort by inspection date so grouped outputs that rely on recency stay deterministic
+violations = violations.sort_values("inspectiondate")
 
 # Print a status message for the grouping step
 print("Grouping violations by building ...")
@@ -61,18 +61,18 @@ buildings = (
     violations
     # Group by the HPD building identifier plus fields that are the same for every row in a building
     .groupby(["buildingid", "address", "zipcode", "bbl"])
-    # Count violations, find the most recent date/status, and collect all descriptions and dates
+    # Count violations, find the most recent date, and collect all descriptions/dates/statuses
     .agg(
         # Count the number of open Class C violations for this building
         violationCount=("violationid", "count"),
-        # Capture the date of the most recent violation at this building
-        latestDate=("novissueddate", "max"),
-        # Capture the currentstatus associated with the most recent violation (thanks to sorting)
-        currentStatus=("currentstatus", "last"),
+        # Capture the date of the most recent inspection at this building
+        latestDate=("inspectiondate", "max"),
         # Gather every violation description into a list for later use in the JSON output
         descriptions=("novdescription", list),
         # Gather every violation date into a parallel list for later use in the JSON output
-        dates=("novissueddate", list),
+        dates=("inspectiondate", list),
+        # Gather every violation status into a parallel list for later use in the JSON output
+        statuses=("currentstatus", list),
     )
     # Drop the groupby index so buildingid becomes a plain column again
     .reset_index()
@@ -89,10 +89,6 @@ buildings["dates"] = buildings["dates"].apply(
 # Sort the buildings by violation count in descending order so the worst buildings come first
 buildings = buildings.sort_values("violationCount", ascending=False)
 
-# Print a quick diagnostic of the most common currentstatus codes
-status_counts = violations["currentstatus"].value_counts()
-print("Top currentstatus values:")
-print(status_counts.to_string())
 
 # Make the output directory if it does not already exist
 output_dir.mkdir(exist_ok=True)

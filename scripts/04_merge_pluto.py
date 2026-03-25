@@ -1,7 +1,7 @@
 """
-Merge the grouped violations data from 03_filter_violations.py with the PLUTO
-latitude/longitude data from 02_download_pluto.py, then serialize the result
-to a JSON schema suitable for use in a SvelteKit app.
+Merge the grouped lead-paint violations data from 03_filter_violations.py with
+the PLUTO latitude/longitude data from 02_download_pluto.py, then serialize the
+result to a JSON schema suitable for use in a SvelteKit app.
 
 The two datasets are joined on the BBL (Borough-Block-Lot) identifier, which
 is a unique 10-digit code that NYC uses to identify every tax lot.
@@ -19,7 +19,7 @@ from typing import Any
 import pandas as pd
 
 # Resolve input/output paths relative to this script file, not the working directory
-script_dir = Path(__file__).parent
+script_dir = Path(__file__).parent.parent
 output_dir = script_dir / "output"
 
 
@@ -119,14 +119,21 @@ print("Converting to JSON ...")
 # Ensure list columns are real lists (supports legacy CSV outputs too)
 merged["descriptions"] = ensure_list_column(merged["descriptions"])
 merged["dates"] = ensure_list_column(merged["dates"])
+merged["statuses"] = ensure_list_column(merged["statuses"])
 
 records = []
 
 for _, row in merged.iterrows():
-    # Pair each violation description with its corresponding date
+    # Pair and sort violations by date (most recent first)
+    violations_triplets = list(zip(row["descriptions"], row["dates"], row["statuses"]))
+    violations_triplets = sorted(
+        violations_triplets,
+        key=lambda t: t[1] if t[1] is not None else "",
+        reverse=True,
+    )
     violations_list = [
-        {"description": desc, "date": date}
-        for desc, date in zip(row["descriptions"], row["dates"])
+        {"description": desc, "date": date, "currentStatus": status}
+        for desc, date, status in violations_triplets
     ]
 
     record = {
@@ -136,8 +143,6 @@ for _, row in merged.iterrows():
         "address": row["address"],
         # Five-digit ZIP code
         "zip": str(row["zipcode"]),
-        # Current status of the most recent violation
-        "currentStatus": row["currentStatus"],
         # Total number of open Class C violations
         "violationCount": int(row["violationCount"]),
         # Date of the most recently issued violation (YYYY-MM-DD)
