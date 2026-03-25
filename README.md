@@ -1,4 +1,4 @@
-# nyc-hpd-violations
+# nyc-hpd-bronx-lead-paint-violations
 
 A Python pipeline that downloads and processes NYC Housing Maintenance Code Violations from [NYC Open Data](https://data.cityofnewyork.us/Housing-Development/Housing-Maintenance-Code-Violations/wvxf-dwi5), focused on **lead paint violations** (Class C, `ordernumber` 616/617). It produces a clean JSON file with one record per building that groups violations by address, counts them, and adds geographic coordinates.
 
