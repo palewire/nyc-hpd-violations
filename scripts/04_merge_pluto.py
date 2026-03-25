@@ -136,6 +136,8 @@ for _, row in merged.iterrows():
         "address": row["address"],
         # Five-digit ZIP code
         "zip": str(row["zipcode"]),
+        # Current status of the most recent violation
+        "currentStatus": row["currentStatus"],
         # Total number of open Class C violations
         "violationCount": int(row["violationCount"]),
         # Date of the most recently issued violation (YYYY-MM-DD)

@@ -11,11 +11,34 @@ Running the four scripts in order produces `output/bronx_buildings.json` — eve
 - Violation count and most recent date
 - Street address and ZIP code
 - Latitude and longitude from [MapPLUTO](https://data.cityofnewyork.us/City-Government/Primary-Land-Use-Tax-Lot-Output-PLUTO-/64uk-42ks)
+- Current status (from the most recent violation in the building)
 - A nested list of all individual violations with descriptions and dates
 
 Intermediate outputs are stored as compressed Parquet files to reduce disk usage and speed reloads.
 
 By editing two constants at the top of `01_download_violations.py` you can filter for any borough or violation class instead.
+
+### What counts as “open”
+
+The download keeps only HPD violations whose `currentstatus` is one of these “open” states (per the HPD data dictionary), excluding closed/dismissed cases:
+
+- VIOLATION OPEN — Active, still requires action or pending reinspection window
+- NOV SENT OUT — Notice of Violation mailed to the owner
+- NOV CERTIFIED ON TIME — Certified corrected on time and accepted
+- NOV CERTIFIED LATE — Certified corrected but submitted late; not acceptable
+- CERTIFICATION POSTPONMENT GRANTED — Extension to correct/certify granted
+- CERTIFICATION POSTPONMENT DENIED — Extension request denied; original date stands
+- FALSE CERTIFICATION — Certified corrected but reinspection found issues
+- VIOLATION WILL BE REINSPECTED — Reinspection scheduled
+- DEFECT LETTER ISSUED — Correction observed but documentation pending
+- NOT COMPLIED WITH — Reinspection found condition persists
+- FIRST NO ACCESS TO RE- INSPECT VIOLATION — No access on first reinspection attempt
+- SECOND NO ACCESS TO RE-INSPECT VIOLATION — No access on second reinspection attempt
+- VIOLATION REOPEN — Reopened after being closed
+- INFO NOV SENT OUT — Informational notice about an order (no cert date)
+- INVALID CERTIFICATION — Certification submitted but defective
+- COMPLIED IN ACCESS AREA — Partial compliance observed (window guard context)
+- CIV 14 MAILED — Tenant notified of received owner certification
 
 ## Requirements
 

@@ -34,13 +34,24 @@ if null_bbl:
         f"  Warning: {null_bbl:,} rows have a null BBL and will not match PLUTO coordinates."
     )
 
+# Ensure address components are strings before concatenation
+violations["housenumber"] = violations["housenumber"].astype("string").fillna("")
+violations["streetname"] = violations["streetname"].astype("string").fillna("")
+violations["zipcode"] = violations["zip"].astype("string").fillna("").str.zfill(5)
+violations["currentstatus"] = (
+    violations["currentstatus"].astype("string").fillna("UNKNOWN")
+)
+
 # Build a full street address by combining the house number and street name columns
 violations["address"] = (
     violations["housenumber"].str.strip() + " " + violations["streetname"].str.strip()
-)
+).str.strip()
 
 # Convert the violation issue date to a proper datetime type so max() returns the latest date correctly
 violations["novissueddate"] = pd.to_datetime(violations["novissueddate"])
+
+# Sort by issue date so groupby "last" pulls the latest currentstatus
+violations = violations.sort_values("novissueddate")
 
 # Print a status message for the grouping step
 print("Grouping violations by building ...")
@@ -50,12 +61,14 @@ buildings = (
     violations
     # Group by the HPD building identifier plus fields that are the same for every row in a building
     .groupby(["buildingid", "address", "zipcode", "bbl"])
-    # Count violations, find the most recent date, and collect all descriptions and dates
+    # Count violations, find the most recent date/status, and collect all descriptions and dates
     .agg(
         # Count the number of open Class C violations for this building
         violationCount=("violationid", "count"),
         # Capture the date of the most recent violation at this building
         latestDate=("novissueddate", "max"),
+        # Capture the currentstatus associated with the most recent violation (thanks to sorting)
+        currentStatus=("currentstatus", "last"),
         # Gather every violation description into a list for later use in the JSON output
         descriptions=("novdescription", list),
         # Gather every violation date into a parallel list for later use in the JSON output
@@ -66,15 +79,20 @@ buildings = (
 )
 
 # Format latestDate as a plain YYYY-MM-DD string so it is readable in Parquet and JSON
-buildings["latestDate"] = buildings["latestDate"].dt.strftime("%Y-%m-%d")
+buildings["latestDate"] = buildings["latestDate"].dt.strftime("%Y-%m-%d").fillna("")
 
 # Format each violation date in the lists as a plain string as well
 buildings["dates"] = buildings["dates"].apply(
-    lambda lst: [d.strftime("%Y-%m-%d") for d in lst]
+    lambda lst: [d.strftime("%Y-%m-%d") if pd.notna(d) else "" for d in lst]
 )
 
 # Sort the buildings by violation count in descending order so the worst buildings come first
 buildings = buildings.sort_values("violationCount", ascending=False)
+
+# Print a quick diagnostic of the most common currentstatus codes
+status_counts = violations["currentstatus"].value_counts()
+print("Top currentstatus values:")
+print(status_counts.to_string())
 
 # Make the output directory if it does not already exist
 output_dir.mkdir(exist_ok=True)

@@ -6,6 +6,7 @@ all: output/bronx_buildings.json
 # Install dependencies
 install:
 	uv sync
+	uv run pre-commit install
 
 # Lint the scripts
 lint:

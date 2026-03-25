@@ -43,8 +43,26 @@ BORO_ID = 2
 # Violation class to filter on ('C' = immediately hazardous)
 VIOLATION_CLASS = "C"
 
-# Only include violations that have not been resolved
-CURRENT_STATUS = "Open"
+# Current statuses that the HPD data dictionary classifies as open
+OPEN_CURRENT_STATUSES = [
+    "VIOLATION OPEN",
+    "NOV SENT OUT",
+    "NOV CERTIFIED ON TIME",
+    "NOV CERTIFIED LATE",
+    "CERTIFICATION POSTPONMENT GRANTED",
+    "CERTIFICATION POSTPONMENT DENIED",
+    "FALSE CERTIFICATION",
+    "VIOLATION WILL BE REINSPECTED",
+    "DEFECT LETTER ISSUED",
+    "NOT COMPLIED WITH",
+    "FIRST NO ACCESS TO RE- INSPECT VIOLATION",
+    "SECOND NO ACCESS TO RE-INSPECT VIOLATION",
+    "VIOLATION REOPEN",
+    "INFO NOV SENT OUT",
+    "INVALID CERTIFICATION",
+    "COMPLIED IN ACCESS AREA",
+    "CIV 14 MAILED",
+]
 
 # ---------------------------------------------------------------------------
 
@@ -57,7 +75,8 @@ page_size = 50_000
 # Build the SoQL WHERE clause to pre-filter on the server.
 # Note: class is a reserved word in SoQL on some versions of the API; if you
 # receive a 400 error, try replacing "class" with "violationclass".
-where = f"boroid={BORO_ID} AND class='{VIOLATION_CLASS}' AND currentstatus='{CURRENT_STATUS}'"
+status_clause = ",".join([f"'{s}'" for s in OPEN_CURRENT_STATUSES])
+where = f"boroid={BORO_ID} AND class='{VIOLATION_CLASS}' AND currentstatus in ({status_clause})"
 
 # URL-encode the WHERE clause so quotes and spaces survive the HTTP request
 encoded_where = quote(where)
@@ -94,8 +113,13 @@ while True:
     # Advance the offset by one full page to request the next batch
     offset += page_size
 
-# Stack all pages into a single DataFrame
-violations = pd.concat(pages, ignore_index=True)
+# Stack all pages into a single DataFrame and normalize dtypes
+violations = pd.concat(pages, ignore_index=True).convert_dtypes()
+
+# Force any remaining object columns to pandas string dtype so Parquet writes cleanly
+for column in violations.columns:
+    if violations[column].dtype == "object":
+        violations[column] = violations[column].astype("string")
 
 # Print the final row count so the user can confirm the full dataset arrived
 print(f"Downloaded {len(violations):,} open Bronx Class {VIOLATION_CLASS} violations.")
