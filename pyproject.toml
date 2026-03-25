@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "nyc-hpd-violations"
 version = "0.0.1"
 requires-python = ">=3.11"
-dependencies = ["pandas>=2", "pre-commit"]
+dependencies = ["pandas>=2", "pyarrow>=15", "pre-commit"]
 authors = [{ name = "Ben Welsh", email = "b@palewi.re" }]
 description = "Download and process NYC Housing Maintenance Code Violations from NYC Open Data"
 license = { text = "MIT" }

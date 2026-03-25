@@ -13,6 +13,8 @@ Running the four scripts in order produces `output/bronx_buildings.json` — eve
 - Latitude and longitude from [MapPLUTO](https://data.cityofnewyork.us/City-Government/Primary-Land-Use-Tax-Lot-Output-PLUTO-/64uk-42ks)
 - A nested list of all individual violations with descriptions and dates
 
+Intermediate outputs are stored as compressed Parquet files to reduce disk usage and speed reloads.
+
 By editing two constants at the top of `01_download_violations.py` you can filter for any borough or violation class instead.
 
 ## Requirements
@@ -32,13 +34,13 @@ make
 That runs all four steps in order. Or run them individually:
 
 ```bash
-# Step 1 — download open Bronx Class C violations → output/violations_raw.csv
+# Step 1 — download open Bronx Class C violations → output/violations_raw.parquet
 uv run python scripts/01_download_violations.py
 
-# Step 2 — download PLUTO coordinates → output/pluto_raw.csv
+# Step 2 — download PLUTO coordinates → output/pluto_raw.parquet
 uv run python scripts/02_download_pluto.py
 
-# Step 3 — group violations by building → output/bronx_c_violations.csv
+# Step 3 — group violations by building → output/bronx_c_violations.parquet
 uv run python scripts/03_filter_violations.py
 
 # Step 4 — merge coordinates and write JSON → output/bronx_buildings.json

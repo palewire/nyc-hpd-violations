@@ -6,14 +6,15 @@ to a JSON schema suitable for use in a SvelteKit app.
 The two datasets are joined on the BBL (Borough-Block-Lot) identifier, which
 is a unique 10-digit code that NYC uses to identify every tax lot.
 
-Inputs:  output/bronx_c_violations.csv
-         output/pluto_raw.csv
+Inputs:  output/bronx_c_violations.parquet
+         output/pluto_raw.parquet
 Output:  output/bronx_buildings.json
 """
 
 import json
 from ast import literal_eval
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
@@ -36,13 +37,30 @@ def bbl_to_str(series: pd.Series) -> pd.Series:
     return result
 
 
+def ensure_list_column(series: pd.Series) -> pd.Series:
+    """Ensure a column contains Python lists, accepting legacy stringified lists."""
+
+    def _coerce(value: Any) -> list:
+        if isinstance(value, list):
+            return value
+        if value is None or value is pd.NA or (
+            isinstance(value, float) and pd.isna(value)
+        ):
+            return []
+        if isinstance(value, str):
+            return literal_eval(value)
+        return list(value) if hasattr(value, "__iter__") else [value]
+
+    return series.apply(_coerce)
+
+
 # ------------------------------------------------------------------
 # Step 1 – Load the violations data produced by 03_filter_violations.py
 # ------------------------------------------------------------------
 
 print("Loading grouped violations data ...")
 
-violations = pd.read_csv(output_dir / "bronx_c_violations.csv")
+violations = pd.read_parquet(output_dir / "bronx_c_violations.parquet")
 violations["bbl"] = bbl_to_str(violations["bbl"])
 
 # Report how many buildings are missing a BBL (they won't get coordinates)
@@ -60,7 +78,7 @@ print(f"  {len(violations):,} buildings loaded.")
 
 print("Loading PLUTO data ...")
 
-pluto = pd.read_csv(output_dir / "pluto_raw.csv")
+pluto = pd.read_parquet(output_dir / "pluto_raw.parquet")
 pluto["bbl"] = bbl_to_str(pluto["bbl"])
 
 # Drop any duplicate BBL rows in PLUTO so the merge stays one-to-one
@@ -96,10 +114,9 @@ if without_coords:
 
 print("Converting to JSON ...")
 
-# Parse the descriptions and dates columns back from their string representation.
-# pandas stores lists as strings in CSV; literal_eval safely reconstructs them.
-merged["descriptions"] = merged["descriptions"].apply(literal_eval)
-merged["dates"] = merged["dates"].apply(literal_eval)
+# Ensure list columns are real lists (supports legacy CSV outputs too)
+merged["descriptions"] = ensure_list_column(merged["descriptions"])
+merged["dates"] = ensure_list_column(merged["dates"])
 
 records = []
 

@@ -6,7 +6,7 @@ geographic coordinates to each building.
 The dataset is fetched in pages of 50,000 rows so no single request
 risks timing out.
 
-Output: output/pluto_raw.csv
+Output: output/pluto_raw.parquet
 
 Source: NYC Open Data – Primary Land Use Tax Lot Output (MapPLUTO)
 https://data.cityofnewyork.us/City-Government/Primary-Land-Use-Tax-Lot-Output-PLUTO-/64uk-42ks
@@ -64,9 +64,9 @@ print(f"Downloaded {len(pluto):,} PLUTO records.")
 output_dir = Path(__file__).parent / "output"
 output_dir.mkdir(exist_ok=True)
 
-# Save the raw PLUTO data to a CSV file for use by the merge script
-output_path = output_dir / "pluto_raw.csv"
-pluto.to_csv(output_path, index=False)
+# Save the raw PLUTO data to a Parquet file for use by the merge script
+output_path = output_dir / "pluto_raw.parquet"
+pluto.to_parquet(output_path, index=False, compression="snappy")
 
 # Tell the user where the file was saved
 print(f"Saved {len(pluto):,} rows to {output_path}")

@@ -6,7 +6,7 @@ Filtering is done server-side via Socrata SoQL query parameters so only the
 rows we need are transferred. The matching rows are fetched in pages of
 50,000 so no single request risks timing out.
 
-Output: output/violations_raw.csv
+Output: output/violations_raw.parquet
 
 Source: NYC Open Data – Housing Maintenance Code Violations
 https://data.cityofnewyork.us/Housing-Development/Housing-Maintenance-Code-Violations/wvxf-dwi5
@@ -104,9 +104,9 @@ print(f"Downloaded {len(violations):,} open Bronx Class {VIOLATION_CLASS} violat
 output_dir = Path(__file__).parent / "output"
 output_dir.mkdir(exist_ok=True)
 
-# Save the raw violation rows to a CSV file for use by the filter script
-output_path = output_dir / "violations_raw.csv"
-violations.to_csv(output_path, index=False)
+# Save the raw violation rows to a Parquet file for use by the filter script
+output_path = output_dir / "violations_raw.parquet"
+violations.to_parquet(output_path, index=False, compression="snappy")
 
 # Tell the user where the file was saved
 print(f"Saved {len(violations):,} rows to {output_path}")
