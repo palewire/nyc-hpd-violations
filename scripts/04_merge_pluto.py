@@ -43,8 +43,10 @@ def ensure_list_column(series: pd.Series) -> pd.Series:
     def _coerce(value: Any) -> list:
         if isinstance(value, list):
             return value
-        if value is None or value is pd.NA or (
-            isinstance(value, float) and pd.isna(value)
+        if (
+            value is None
+            or value is pd.NA
+            or (isinstance(value, float) and pd.isna(value))
         ):
             return []
         if isinstance(value, str):
