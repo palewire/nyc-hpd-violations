@@ -35,5 +35,7 @@ output/bronx_violations.csv: output/violations_raw.csv
 	uv run python scripts/03_filter_violations.py
 
 # Step 4: Merge coordinates and write final JSON
+# Step 5: Clean violation descriptions and add specificDescription field
 output/bronx_buildings.json: output/bronx_violations.csv output/pluto_raw.parquet
 	uv run python scripts/04_merge_pluto.py
+	uv run python scripts/05_clean_descriptions.py
